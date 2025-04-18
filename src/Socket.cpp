@@ -7,6 +7,8 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
+//be aware of/catch signal(SIGPIPE)
+
 Socket::Socket()
   : fd_(::socket(AF_INET, SOCK_STREAM, 0))
 {
@@ -48,12 +50,13 @@ void Socket::bind(uint16_t port) {
 		throw std::system_error(errno, std::generic_category(), "bind() failed");
 }
 
-void Socket::listen(int backlog) {
-	if (::listen(fd_, backlog) < 0)
+void Socket::listen(void) {
+	if (::listen(fd_, SOMAXCONN) < 0)
 		throw std::system_error(errno, std::generic_category(), "listen() failed");
 }
 
 Socket Socket::accept() {
+	assert(isListening_ && "Only listening sockets can call accept()");
 	sockaddr_in cli{};
 	socklen_t sz = sizeof(cli);
 	int clientFd = ::accept(fd_, reinterpret_cast<sockaddr*>(&cli), &sz);

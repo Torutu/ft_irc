@@ -5,6 +5,8 @@
 #include <string_view>
 #include <netinet/in.h>
 #include <system_error>
+#include <sys/socket.h> //SOMAXCONN, listen()
+#include <cassert>
 
 /**
  * @brief RAII wrapper for a non‑blocking TCP/IPv4 socket.
@@ -33,10 +35,10 @@ public:
 	void bind(uint16_t port);
 
 	/** Start listening with given backlog. @throws on failure. */
-	void listen(int backlog = 10);
+	void listen(void);
 
 	/** Accept a new client connection as a non‑blocking socket. */
-	Socket accept();
+	Socket accept();///???
 
 	/**
 	 * @brief Send all of `data`, looping on partial writes.
@@ -56,8 +58,9 @@ public:
 	int getFd() const noexcept { return fd_; }
 
 private:
-	int       fd_{-1};
-	sockaddr_in addr_{};
+	int			fd_{-1};
+	sockaddr_in	addr_{};
+	bool		isListening_{false};
 
 	void throwIfInvalid(const char* what) const;
 };
