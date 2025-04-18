@@ -1,20 +1,23 @@
-NAME        = ircserv
-FSANITNAME    = ircFsan
-VALGRNAME    = ircVal
+NAME			= ircserv
+FSANITNAME		= ircFsan
+VALGRNAME		= ircVal
 
-CXX            = c++
-FLAGS        = -std=c++20 -Wall -Wextra -Werror #-O3
-DEBUGFLAGS    = -Wpedantic -Wshadow -g -O0 -fsanitize=address -fsanitize=undefined #-v
-VALGRFLAGS    = -Wpedantic -Wshadow -g -O0
-RM            = rm -rf
+CXX				= c++
+FLAGS			= -std=c++20 -Wall -Wextra -Werror #-O3
+DEBUGFLAGS		= -Wpedantic -Wshadow -g -O0 -fsanitize=address -fsanitize=undefined #-v
+VALGRFLAGS		= -Wpedantic -Wshadow -g -O0
+RM				= rm -rf
 
 
+INC			= inc/
+HEADERS		=	$(INC)irc.hpp \
+				$(INC)Socket.hpp
 
-HEADERS    =    inc/irc.hpp \
-
-SRCS    =    src/main.cpp \
-			 src/ArgCheck.cpp \
-			 src/Server.cpp \
+SRCDIR	=	src/
+SRCS	=	$(SRCDIR)main.cpp \
+			$(SRCDIR)ArgCheck.cpp \
+			$(SRCDIR)Server.cpp \
+			$(SRCDIR)Socket.cpp
 
 
 
@@ -37,12 +40,12 @@ re: fclean all
 fs: fclean
 	echo ########################################################
 	$(CXX) $(FLAGS) $(DEBUGFLAGS) -o $(FSANITNAME) $(SRCS)
-	./$(FSANITNAME) 'c'
+	./$(FSANITNAME)
 
 val: fclean
 	echo ########################################################
 	$(CXX) $(FLAGS) $(VALGRFLAGS) -o $(VALGRNAME) $(SRCS)
-	valgrind --leak-check=full --show-leak-kinds=all ./$(VALGRNAME) 'c'
+	valgrind --leak-check=full --show-leak-kinds=all ./$(VALGRNAME)
 
 git: fclean
 	clear
