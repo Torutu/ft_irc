@@ -11,7 +11,7 @@ Socket::Socket()
 	addr_{},
 	isListening_{false}
 {
-	if (fd_ < 0) {
+	if (fd_ < 0) {//what happens if this if is removed (the socket creation fails)
 		throw std::system_error(errno, std::generic_category(), "socket() failed");
 	}
 }

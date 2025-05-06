@@ -21,9 +21,7 @@ void Server::handleClient(size_t index) {
 	}
 }
 
-Client::~Client() {} // 
-
-Client::Client(int fd) : fd(fd), nick("guest"), user("guest") // Constructor with fd
+Client::Client(Socket&& so) : so_{std::move(so)}, nick{"guest"}, user{"guest"} // Parameterized constructor
 {
 	this->authenticated = false;
 	this->nickReceived = false;
@@ -32,35 +30,42 @@ Client::Client(int fd) : fd(fd), nick("guest"), user("guest") // Constructor wit
 	this->modeReceived = false;
 	this->whois = false;
 }
-
-Client::Client() : fd(-1), nick("guest"), user("guest") // Constructor without fd
+//move constructor
+Client::Client(Client&& other) noexcept
+	:	so_{std::move(other.so_)},
+		nick{other.nick},
+		user{other.user},
+		joinedChannels{std::move(other.joinedChannels)},
+		authenticated{std::exchange(other.authenticated, false)},
+		nickReceived{std::exchange(other.nickReceived, false)},
+		userReceived{std::exchange(other.userReceived, false)},
+		passReceived{std::exchange(other.passReceived, false)},
+		modeReceived{std::exchange(other.modeReceived, false)},
+		whois{std::exchange(other.modeReceived, false)}
 {
-	this->authenticated = false;
-	this->nickReceived = false;
-	this->userReceived = false;
-	this->passReceived = false;
-	this->modeReceived = false;
-	this->whois = false;
+	other.nick.clear();
+	other.user.clear();
 }
 
-Client::Client(std::string nick, std::string user, int fd): fd(fd), nick(nick), user(user) {}
-
-Client::Client(const Client &other)
-{
-	*this = other;
-}
-
-Client &Client::operator=(const Client &other)
-{
-	if (this != &other)
-	{
-		this->nick = other.nick;
-		this->user = other.user;
-		this->fd = other.fd;
-		this->joinedChannels = other.joinedChannels;
+//move assignment
+Client&	Client::operator=(Client&& other) noexcept {
+	if (this != &other) {
+		nick = other.nick;
+		other.nick.clear();
+		user = other.user;
+		other.user.clear();
+		joinedChannels = std::move(other.joinedChannels);
+		authenticated = std::exchange(other.authenticated, false);
+		nickReceived = std::exchange(other.nickReceived, false);
+		userReceived = std::exchange(other.userReceived, false);
+		passReceived = std::exchange(other.passReceived, false);
+		modeReceived = std::exchange(other.modeReceived, false);
+		whois = std::exchange(other.modeReceived, false);
 	}
 	return *this;
 }
+
+// Client::Client(std::string nick, std::string user, int fd): fd(fd), nick(nick), user(user) {}
 
 bool Client::isInChannel(const std::string &channel)
 {
@@ -163,7 +168,7 @@ bool Client::isAuthenticated() const
 
 int Client::getFd() const
 {
-	return this->fd;
+	return this->so_.getFd();
 }
 
 const std::map<std::string, bool>& Client::getJoinedChannels() const

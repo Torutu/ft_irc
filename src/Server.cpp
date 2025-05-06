@@ -72,7 +72,6 @@ void Server::mainLoop() {
 			if (pollFds_[i].revents & (POLLERR | POLLHUP | POLLNVAL)) {
 				std::cerr << "Error condition on fd " << pollFds_[i].fd << std::endl;
 				pollFds_.erase(pollFds_.begin() + i);
-				sockets_.erase(pollFds_.at(i).fd);
 				i--; // Adjust index after erase
 			}
 		}
@@ -103,31 +102,29 @@ void Server::acceptNewConnection() {
 				throw std::system_error(errno, std::generic_category(), "accept() failed");// Fatal errors
 		}
 	};
-	int		clientFd   = clientSock.getFd();
 
 	std::cout << "Accepted new connection from " 
 			  << inet_ntoa(clientSock.getAddr().sin_addr) << ":"
 			  << ntohs(clientSock.getAddr().sin_port) 
-			  << " (FD: " << clientFd << ")" << std::endl;
+			  << " (FD: " << clientSock.getFd() << ")" << std::endl;
 
-	pollFds_.push_back((pollfd){clientFd, POLLIN | POLLOUT, 0});
-	sockets_.emplace(clientFd, std::move(clientSock));
+	pollFds_.push_back((pollfd){clientSock.getFd(), POLLIN | POLLOUT, 0});
+	
+	// Initialize new client
+	clients_.emplace(clientSock.getFd(), Client(std::move(clientSock)));
 
 	// Send welcome message
 	std::string welcome = "Welcome to ft_irc!\nPlease register with NICK and USER\r\n";
-	if (send(clientFd, welcome.c_str(), welcome.size(), 0) < 0) {
+	if (send(clientSock.getFd(), welcome.c_str(), welcome.size(), 0) < 0) {
 		std::cerr << "send() error: " << strerror(errno) << std::endl;
 	}
 
-
-	// Initialize new client
-	clients_[clientFd] = Client();  // Sets registered=false by default
 	
 	// Send initial MOTD (makes irssi happy)
 	std::string motd = 
 		":localhost 375 * :- Message of the Day -\r\n"
 		":localhost 376 * :Another day another slay\r\n";
-	send(clientFd, motd.c_str(), motd.size(), 0);
+	send(clientSock.getFd(), motd.c_str(), motd.size(), 0);
 }
 
 int Server::getClientFdByNick(const std::string& nick) const {

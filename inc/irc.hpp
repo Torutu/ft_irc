@@ -44,7 +44,7 @@
 class Server {
 public:
 
-Server();// Default constructor
+Server();
 Server(Config&& configuration);    // Parameterized constructor
 ~Server();
 
@@ -79,9 +79,7 @@ private:
 
 	Config					cnfg_;
 	Socket					serverFd_; // socket wrapper for serverFd_
-	std::map<int, Socket>	sockets_; // per-client socket objects
 
-	// std::vector<int> clientFds_;                            // Vector of client file descriptors
 	std::vector<struct pollfd> pollFds_;                    // Vector of poll file descriptors for clients
 	std::map<int, Client> clients_;                         // Map of client file descriptors to Client objects
 	int defaultUserCount_ = 0;                              // Default user count for the server
