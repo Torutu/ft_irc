@@ -18,15 +18,19 @@ class Client {
 		bool passReceived; // Password received status
 		bool modeReceived; // Mode received status
 		bool whois; // Whois status
+		int		bytesSent_;
+		char	sendBuf_[1024];//or reserved string that we append and clear
+		int		bytesRecvd_;
+		char	recvBuf_[1024];
 
 	public:
-		Client()								= default;
-		Client(Socket&& so); // only constructor; ties the client instance to a socket
+		Client();	//def. constructor on creation makes a new socket
+		Client(Socket&& so); //constructor ties the new client instance to an existing socket
 		// Client(std::string nick, std::string user, int fd);
 		Client(const Client& other)				= delete;
 		Client& operator=(const Client& other)	= delete;
-		Client(Client&& other) noexcept; //Move constructor
-		Client&	operator=(Client&& other) noexcept; //Move assignment
+		Client(Client&& other) noexcept;				//Move constructor
+		Client&	operator=(Client&& other) noexcept; 	//Move assignment
 		~Client()								= default;
 
 		std::string getNick() const;
@@ -47,6 +51,9 @@ class Client {
 		void setPassReceived();
 		void setModeReceived();
 		void setAuthenticated();
+
+		ssize_t send(std::string_view data) const;
+		ssize_t receive(std::string &buf) const;
 
 		void joinChannel(const std::string& channel, bool is_operator);
 		void leaveChannel(const std::string& channel);// Leave a channel

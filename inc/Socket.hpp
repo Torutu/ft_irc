@@ -38,7 +38,7 @@ public:
 	void	makeListener(uint16_t port);
 
 	int			getFd() const noexcept {return fd_;}
-	sockaddr_in getAddr() const {return addr_;}
+	sockaddr_in getAddr() const noexcept {return addr_;}
 	bool		isListener() const noexcept {return isListening_;}
 };
 

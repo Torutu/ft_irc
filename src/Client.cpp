@@ -21,16 +21,41 @@ void Server::handleClient(size_t index) {
 	}
 }
 
-Client::Client(Socket&& so) : so_{std::move(so)}, nick{"guest"}, user{"guest"} // Parameterized constructor
+Client::Client()
+:	so_{},
+	nick{"guest"},
+	user{"guest"},
+	bytesSent_{0},
+	bytesRecvd_{0},
+	authenticated{false},
+	nickReceived{false},
+	userReceived{false},
+	passReceived{false},
+	modeReceived{false},
+	whois{false}
 {
-	this->authenticated = false;
-	this->nickReceived = false;
-	this->userReceived = false;
-	this->passReceived = false;
-	this->modeReceived = false;
-	this->whois = false;
+	sendBuf_[1024] = {};
+	recvBuf_[1024] = {};
 }
-//move constructor
+
+Client::Client(Socket&& so)  // Parameterized constructor
+:	so_{std::move(so)},
+	nick{"guest"},
+	user{"guest"},
+	bytesSent_{0},
+	bytesRecvd_{0},
+	authenticated{false},
+	nickReceived{false},
+	userReceived{false},
+	passReceived{false},
+	modeReceived{false},
+	whois{false}
+{
+	sendBuf_[1024] = {};
+	recvBuf_[1024] = {};
+}
+
+//move constructor - UPDATE
 Client::Client(Client&& other) noexcept
 	:	so_{std::move(other.so_)},
 		nick{other.nick},
@@ -47,7 +72,7 @@ Client::Client(Client&& other) noexcept
 	other.user.clear();
 }
 
-//move assignment
+//move assignment - UPDATE
 Client&	Client::operator=(Client&& other) noexcept {
 	if (this != &other) {
 		nick = other.nick;
@@ -66,6 +91,60 @@ Client&	Client::operator=(Client&& other) noexcept {
 }
 
 // Client::Client(std::string nick, std::string user, int fd): fd(fd), nick(nick), user(user) {}
+
+ssize_t Client::send(std::string_view data) const {
+	sendBuf_ = data.data();
+	ssize_t totalSent = 0;
+	while (totalSent < data.size()) {
+		ssize_t n = ::send(fd_, data.data() + totalSent, data.size() - totalSent, MSG_NOSIGNAL);
+		if (n > 0) {
+			totalSent += n;
+		} else if (n == -1) {
+			if (errno == EINTR) {
+				continue;  // Interrupted; retry.
+			}
+			else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+				break;  // Non-fatal, temporary conditions.
+			}
+			else {
+				throw std::system_error(errno, std::generic_category(), "write() failed");// Fatal error
+			}
+		} else {
+			break; // n == 0; break out to avoid potential infinite loop.
+		}
+	}
+	return totalSent;
+}
+
+ssize_t Client::receive(std::string &buf) const {
+	char tmp[4096];
+	ssize_t n = 0;
+
+	while (true) {
+		n = ::read(fd_, tmp, sizeof(tmp));
+		if (n > 0) {
+			break;
+		} else if (n == 0) {
+			break;// End-of-file: the peer has closed the connection.
+		} else {
+			if (errno == EINTR) { // Interrupted by a signal, retry the read.
+				continue;
+			} else if (errno == EAGAIN || errno == EWOULDBLOCK) { // no data available; return 0 bytes read.
+				n = 0;
+				break;
+			} else {
+				throw std::system_error(errno, std::generic_category(), "read() failed");
+			}
+		}
+	}
+
+	if (n > 0) {
+		buf.assign(tmp, static_cast<size_t>(n));
+	} else {
+		buf.clear();
+	}
+	return n;
+}
 
 bool Client::isInChannel(const std::string &channel)
 {

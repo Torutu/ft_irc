@@ -41,7 +41,7 @@ void Server::setupServer() {
 	// Initialize pollFds_ with server socket
 	pollFds_.clear();
 	pollFds_.push_back((pollfd){serverFd_.getFd(), POLLIN, 0});
-	std::cout << "Server setup complete on port " << cnfg_.getPort() << std::endl;
+	std::cout << "Server setup complete on port " << cnfg_.getPort() << std::endl;//add IP address
 }
 void Server::mainLoop() {
 	std::cout << "Entering main loop with " << pollFds_.size() << " file descriptors" << std::endl;
@@ -109,13 +109,14 @@ void Server::acceptNewConnection() {
 			  << " (FD: " << clientSock.getFd() << ")" << std::endl;
 
 	pollFds_.push_back((pollfd){clientSock.getFd(), POLLIN | POLLOUT, 0});
-	
+
+	int	clientSockFd = clientSock.getFd();
 	// Initialize new client
 	clients_.emplace(clientSock.getFd(), Client(std::move(clientSock)));
 
 	// Send welcome message
 	std::string welcome = "Welcome to ft_irc!\nPlease register with NICK and USER\r\n";
-	if (send(clientSock.getFd(), welcome.c_str(), welcome.size(), 0) < 0) {
+	if (send(clientSockFd, welcome.c_str(), welcome.size(), 0) < 0) {
 		std::cerr << "send() error: " << strerror(errno) << std::endl;
 	}
 
@@ -124,7 +125,7 @@ void Server::acceptNewConnection() {
 	std::string motd = 
 		":localhost 375 * :- Message of the Day -\r\n"
 		":localhost 376 * :Another day another slay\r\n";
-	send(clientSock.getFd(), motd.c_str(), motd.size(), 0);
+	send(clientSockFd, motd.c_str(), motd.size(), 0);
 }
 
 int Server::getClientFdByNick(const std::string& nick) const {
