@@ -32,11 +32,10 @@ Client::Client()
 	userReceived{false},
 	passReceived{false},
 	modeReceived{false},
-	whois{false}
-{
-	sendBuf_[1024] = {};
-	recvBuf_[1024] = {};
-}
+	whois{false},
+	sendBuf_{},
+	recvBuf_{}
+{}
 
 Client::Client(Socket&& so)  // Parameterized constructor
 :	so_{std::move(so)},
@@ -49,36 +48,32 @@ Client::Client(Socket&& so)  // Parameterized constructor
 	userReceived{false},
 	passReceived{false},
 	modeReceived{false},
-	whois{false}
-{
-	sendBuf_[1024] = {};
-	recvBuf_[1024] = {};
-}
+	whois{false},
+	sendBuf_{},
+	recvBuf_{}
+{}
 
 //move constructor - UPDATE
 Client::Client(Client&& other) noexcept
 	:	so_{std::move(other.so_)},
-		nick{other.nick},
-		user{other.user},
+		nick{std::move(other.nick)},
+		user{std::move(other.user)},
 		joinedChannels{std::move(other.joinedChannels)},
 		authenticated{std::exchange(other.authenticated, false)},
 		nickReceived{std::exchange(other.nickReceived, false)},
 		userReceived{std::exchange(other.userReceived, false)},
 		passReceived{std::exchange(other.passReceived, false)},
 		modeReceived{std::exchange(other.modeReceived, false)},
-		whois{std::exchange(other.modeReceived, false)}
-{
-	other.nick.clear();
-	other.user.clear();
-}
+		whois{std::exchange(other.modeReceived, false)},
+		sendBuf_{std::move(other.sendBuf_)},
+		recvBuf_{std::move(other.recvBuf_)}
+{}
 
 //move assignment - UPDATE
 Client&	Client::operator=(Client&& other) noexcept {
 	if (this != &other) {
-		nick = other.nick;
-		other.nick.clear();
-		user = other.user;
-		other.user.clear();
+		nick = std::exchange(other.nick, "");
+		user = std::exchange(other.user, "");
 		joinedChannels = std::move(other.joinedChannels);
 		authenticated = std::exchange(other.authenticated, false);
 		nickReceived = std::exchange(other.nickReceived, false);
@@ -86,6 +81,8 @@ Client&	Client::operator=(Client&& other) noexcept {
 		passReceived = std::exchange(other.passReceived, false);
 		modeReceived = std::exchange(other.modeReceived, false);
 		whois = std::exchange(other.modeReceived, false);
+		sendBuf_ = std::exchange(other.sendBuf_, "");
+		recvBuf_ = std::exchange(other.recvBuf_, "");
 	}
 	return *this;
 }

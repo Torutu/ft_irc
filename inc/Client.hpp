@@ -18,10 +18,10 @@ class Client {
 		bool passReceived; // Password received status
 		bool modeReceived; // Mode received status
 		bool whois; // Whois status
-		int		bytesSent_;
-		char	sendBuf_[1024];//or reserved string that we append and clear
-		int		bytesRecvd_;
-		char	recvBuf_[1024];
+		ssize_t 	bytesSent_;
+		ssize_t		bytesRecvd_;
+		std::string sendBuf_;
+		std::string	recvBuf_;
 
 	public:
 		Client();	//def. constructor on creation makes a new socket
