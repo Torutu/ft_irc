@@ -26,8 +26,8 @@ void Server::sendWelcome(int fd) {
 void Server::checkRegistration(int fd) {
 	Client& client = clients_[fd];
 	if (!client.getNick().empty() && !client.getUser().empty() && !client.isAuthenticated()) {
-        client.setAuthenticated();  // Assuming you want to set them as authenticated
-        sendWelcome(fd);
+		client.setAuthenticated();  // Assuming you want to set them as authenticated
+		sendWelcome(fd);
 	}
 }
 
@@ -37,7 +37,7 @@ void Server::run() {
 	mainLoop(); // Start the main loop
 }
 void Server::setupServer() {
-    serverFd_.makeListener(cnfg_.getPort());// Socket wrapper to bind+listen+non-blocking
+	serverFd_.makeListener(cnfg_.getPort());// Socket wrapper to bind+listen+non-blocking
 	// Initialize pollFds_ with server socket
 	pollFds_.clear();
 	pollFds_.push_back((pollfd){serverFd_.getFd(), POLLIN, 0});
@@ -62,15 +62,19 @@ void Server::mainLoop() {
 		// Check all file descriptors, not just server socket
 		for (int i = 0; i < pollFds_.size(); i++) {
 			if (pollFds_[i].revents & POLLIN) {
-				if (pollFds_.at(i).fd == serverFd_.getFd()) { // Server socket
+				if (pollFds_.at(i).fd == serverFd_.getFd()) {
 					acceptNewConnection();
 				}
-				else { // Client socket
-					handleClientInput(i);
+				else {
+					handleClientRead(i);
 				}
 			}
+			if (pollFds_[i].revents & POLLOUT) {
+				handleClientWrite(i);
+			}
 			if (pollFds_[i].revents & (POLLERR | POLLHUP | POLLNVAL)) {
-				std::cerr << "Error condition on fd " << pollFds_[i].fd << std::endl;
+				std::cerr << "Error condition on fd " << pollFds_.at(i).fd << std::endl;
+				// clients_.erase(pollFds_.at(i).fd); //do we erase the client in this case?
 				pollFds_.erase(pollFds_.begin() + i);
 				i--; // Adjust index after erase
 			}
@@ -129,12 +133,12 @@ void Server::acceptNewConnection() {
 }
 
 int Server::getClientFdByNick(const std::string& nick) const {
-    for (std::map<int, Client>::const_iterator it = clients_.begin(); it != clients_.end(); ++it) {
-        if (it->second.getNick() == nick) {
-            return it->first;
-        }
-    }
-    return -1; // Not found
+	for (std::map<int, Client>::const_iterator it = clients_.begin(); it != clients_.end(); ++it) {
+		if (it->second.getNick() == nick) {
+			return it->first;
+		}
+	}
+	return -1; // Not found
 }
 
 std::string Server::getNickByFd(int fd) const {
@@ -143,4 +147,25 @@ std::string Server::getNickByFd(int fd) const {
 		return it->second.getNick();
 	}
 	return ""; // Not found
+}
+
+void	Server::handleClientWrite(size_t index) {
+	int cliFd = pollFds_.at(index).fd;
+
+	if (clients_[cliFd].sendBuf_.empty()) {
+		return;
+	}
+
+	ssize_t sent = send(cliFd, clients_[cliFd].sendBuf_.data(), clients_[cliFd].sendBuf_.size(), MSG_NOSIGNAL);
+	if (sent > 0) {
+		clients_[cliFd].sendBuf_.erase(0, sent);
+	} else if (sent == -1) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+			return;
+		} else {
+			std::cerr << "FD " << cliFd << " send() error: " << strerror(errno) << std::endl;
+		}
+	} else if (sent == 0) {
+		handleClientError(0, index);
+	}
 }

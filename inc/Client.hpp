@@ -20,21 +20,20 @@ class Client {
 		bool passReceived; // Password received status
 		bool modeReceived; // Mode received status
 		bool whois; // Whois status
-		ssize_t 	bytesSent_;
 		ssize_t		bytesRecvd_;
-		std::string sendBuf_;
-		std::string	recvBuf_;
-
-	public:
-		Client();	//def. constructor on creation makes a new socket
-		Client(Socket&& so); //constructor ties the new client instance to an existing socket
-		// Client(std::string nick, std::string user, int fd);
-		Client(const Client& other)				= delete;
-		Client& operator=(const Client& other)	= delete;
-		Client(Client&& other) noexcept;				//Move constructor
-		Client&	operator=(Client&& other) noexcept; 	//Move assignment
-		~Client()								= default;
-
+        
+    public:
+        Client();	//def. constructor on creation makes a new socket
+        Client(Socket&& so); //constructor ties the new client instance to an existing socket
+        // Client(std::string nick, std::string user, int fd);
+        Client(const Client& other)				= delete;
+        Client& operator=(const Client& other)	= delete;
+        Client(Client&& other) noexcept;				//Move constructor
+        Client&	operator=(Client&& other) noexcept; 	//Move assignment
+        ~Client()								= default;
+        
+        std::string sendBuf_;
+        std::string	recvBuf_;
 		std::string getNick() const;
 		std::string getUser() const;
 
