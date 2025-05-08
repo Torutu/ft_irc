@@ -5,6 +5,8 @@
 #include <map>
 #include "Socket.hpp"
 
+#define IRC_BUFFER_SIZE 4096
+
 //add send/recv with persisting buffers to client
 class Client {
 	private:
@@ -52,8 +54,7 @@ class Client {
 		void setModeReceived();
 		void setAuthenticated();
 
-		ssize_t send(std::string_view data) const;
-		ssize_t receive(std::string &buf) const;
+		bool	bufForSending(const std::string& data);
 
 		void joinChannel(const std::string& channel, bool is_operator);
 		void leaveChannel(const std::string& channel);// Leave a channel

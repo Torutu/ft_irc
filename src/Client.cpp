@@ -1,6 +1,6 @@
 #include "../inc/irc.hpp"
 
-void Server::handleClient(size_t index) {
+void Server::handleClientRead(size_t index) {
 	char buffer[1024];
 	ssize_t bytesRead = recv(pollFds_[index].fd, buffer, sizeof(buffer) - 1, 0);
 	if (bytesRead <= 0) {
@@ -35,7 +35,10 @@ Client::Client()
 	whois{false},
 	sendBuf_{},
 	recvBuf_{}
-{}
+{
+	sendBuf_.reserve(4096);
+	recvBuf_.reserve(4096);
+}
 
 Client::Client(Socket&& so)  // Parameterized constructor
 :	so_{std::move(so)},
@@ -51,7 +54,10 @@ Client::Client(Socket&& so)  // Parameterized constructor
 	whois{false},
 	sendBuf_{},
 	recvBuf_{}
-{}
+{
+	sendBuf_.reserve(4096);
+	recvBuf_.reserve(4096);
+}
 
 //move constructor - UPDATE
 Client::Client(Client&& other) noexcept
@@ -89,58 +95,21 @@ Client&	Client::operator=(Client&& other) noexcept {
 
 // Client::Client(std::string nick, std::string user, int fd): fd(fd), nick(nick), user(user) {}
 
-ssize_t Client::send(std::string_view data) const {
-	sendBuf_ = data.data();
-	ssize_t totalSent = 0;
-	while (totalSent < data.size()) {
-		ssize_t n = ::send(fd_, data.data() + totalSent, data.size() - totalSent, MSG_NOSIGNAL);
-		if (n > 0) {
-			totalSent += n;
-		} else if (n == -1) {
-			if (errno == EINTR) {
-				continue;  // Interrupted; retry.
-			}
-			else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-				break;  // Non-fatal, temporary conditions.
-			}
-			else {
-				throw std::system_error(errno, std::generic_category(), "write() failed");// Fatal error
-			}
-		} else {
-			break; // n == 0; break out to avoid potential infinite loop.
-		}
+bool	Client::bufForSending(const std::string& data) {
+	if (data.empty()){
+		return true;
 	}
-	return totalSent;
-}
-
-ssize_t Client::receive(std::string &buf) const {
-	char tmp[4096];
-	ssize_t n = 0;
-
-	while (true) {
-		n = ::read(fd_, tmp, sizeof(tmp));
-		if (n > 0) {
-			break;
-		} else if (n == 0) {
-			break;// End-of-file: the peer has closed the connection.
-		} else {
-			if (errno == EINTR) { // Interrupted by a signal, retry the read.
-				continue;
-			} else if (errno == EAGAIN || errno == EWOULDBLOCK) { // no data available; return 0 bytes read.
-				n = 0;
-				break;
-			} else {
-				throw std::system_error(errno, std::generic_category(), "read() failed");
-			}
-		}
+	if (sendBuf_.size() + data.size() > IRC_BUFFER_SIZE) {
+		std::cerr << "sendBuf_ is filling up" << std::endl;
+		return false;
 	}
-
-	if (n > 0) {
-		buf.assign(tmp, static_cast<size_t>(n));
-	} else {
-		buf.clear();
+	try {
+		sendBuf_.append(data);
+	} catch (std::exception& e) {
+		std::cerr << "sendBuf append failed: " << e.what() << std::endl;
+		return false;
 	}
-	return n;
+	return true;
 }
 
 bool Client::isInChannel(const std::string &channel)

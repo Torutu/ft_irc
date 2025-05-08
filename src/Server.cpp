@@ -60,13 +60,13 @@ void Server::mainLoop() {
 		}
 		
 		// Check all file descriptors, not just server socket
-		for (size_t i = 0; i < pollFds_.size(); i++) {
+		for (int i = 0; i < pollFds_.size(); i++) {
 			if (pollFds_[i].revents & POLLIN) {
 				if (pollFds_.at(i).fd == serverFd_.getFd()) { // Server socket
 					acceptNewConnection();
 				}
 				else { // Client socket
-					handleClient(i);
+					handleClientInput(i);
 				}
 			}
 			if (pollFds_[i].revents & (POLLERR | POLLHUP | POLLNVAL)) {
