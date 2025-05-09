@@ -15,15 +15,16 @@ class Channel
         std::vector<int> invitedUsers;
         std::vector<int> clients; // List of client file descriptors in the channel
         std::vector<int> operators; // List of operator file descriptors in the channel
-
+        
         int userLimit;
         bool inviteOnly; // i
         bool topicRestrictedToOperators;  // t
+        std::map<int, Client>* clientsPtr_;//should this be smart pointer?
 
     public:
         ~Channel();
         Channel();
-        Channel(const std::string &name);
+        Channel(const std::string &name, std::map<int, Client>* allClientsPtr);
         Channel(const Channel &other);
 
         Channel &operator=(const Channel &src);

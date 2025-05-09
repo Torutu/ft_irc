@@ -20,7 +20,7 @@ class Client {
 		bool passReceived; // Password received status
 		bool modeReceived; // Mode received status
 		bool whois; // Whois status
-		ssize_t		bytesRecvd_;
+		// ssize_t		bytesRecvd_;
         
     public:
         Client();	//def. constructor on creation makes a new socket
@@ -32,8 +32,8 @@ class Client {
         Client&	operator=(Client&& other) noexcept; 	//Move assignment
         ~Client()								= default;
         
-        std::string sendBuf_;
-        std::string	recvBuf_;
+        std::string sendBuf_;//make private?
+        // std::string	recvBuf_;//make private?
 		std::string getNick() const;
 		std::string getUser() const;
 

@@ -60,7 +60,7 @@ void Server::mainLoop() {
 		}
 		
 		// Check all file descriptors, not just server socket
-		for (int i = 0; i < pollFds_.size(); i++) {
+		for (unsigned long i = 0; i < pollFds_.size(); i++) {
 			if (pollFds_[i].revents & POLLIN) {
 				if (pollFds_.at(i).fd == serverFd_.getFd()) {
 					acceptNewConnection();
@@ -115,9 +115,14 @@ void Server::acceptNewConnection() {
 	pollFds_.push_back((pollfd){clientSock.getFd(), POLLIN | POLLOUT, 0});
 
 	int	clientSockFd = clientSock.getFd();
+
 	// Initialize new client
 	clients_.emplace(clientSock.getFd(), Client(std::move(clientSock)));
-
+	if (clients_.find(clientSockFd) == clients_.end()) {
+		std::cout << "Key not found!" << std::endl;
+	} else {
+		clients_.at(clientSockFd).bufForSending("hellou");
+	}
 	// Send welcome message
 	std::string welcome = "Welcome to ft_irc!\nPlease register with NICK and USER\r\n";
 	if (send(clientSockFd, welcome.c_str(), welcome.size(), 0) < 0) {

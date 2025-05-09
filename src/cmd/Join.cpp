@@ -13,7 +13,7 @@ void Server::cmdJoin(int fd, const std::string& message) {
     }
 
     if (channels_.find(channel) == channels_.end()) {
-        channels_[channel] = Channel(channel); // Create a new channel if it doesn't exist
+        channels_[channel] = Channel(channel, &clients_); // Create a new channel if it doesn't exist
     }
 
     if (clients_[fd].isInChannel(channel)) {

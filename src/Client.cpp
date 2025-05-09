@@ -25,36 +25,36 @@ Client::Client()
 :	so_{},
 	nick{"guest"},
 	user{"guest"},
-	bytesRecvd_{0},
 	authenticated{false},
 	nickReceived{false},
 	userReceived{false},
 	passReceived{false},
 	modeReceived{false},
 	whois{false},
-	sendBuf_{},
-	recvBuf_{}
+	sendBuf_{}
+	// bytesRecvd_{0},
+	// recvBuf_{}
 {
 	sendBuf_.reserve(4096);
-	recvBuf_.reserve(4096);
+	// recvBuf_.reserve(4096);
 }
 
 Client::Client(Socket&& so)  // Parameterized constructor
 :	so_{std::move(so)},
 	nick{"guest"},
 	user{"guest"},
-	bytesRecvd_{0},
 	authenticated{false},
 	nickReceived{false},
 	userReceived{false},
 	passReceived{false},
 	modeReceived{false},
 	whois{false},
-	sendBuf_{},
-	recvBuf_{}
+	sendBuf_{}
+	// bytesRecvd_{0},
+	// recvBuf_{}
 {
 	sendBuf_.reserve(4096);
-	recvBuf_.reserve(4096);
+	// recvBuf_.reserve(4096);
 }
 
 //move constructor - UPDATE
@@ -69,8 +69,8 @@ Client::Client(Client&& other) noexcept
 		passReceived{std::exchange(other.passReceived, false)},
 		modeReceived{std::exchange(other.modeReceived, false)},
 		whois{std::exchange(other.modeReceived, false)},
-		sendBuf_{std::move(other.sendBuf_)},
-		recvBuf_{std::move(other.recvBuf_)}
+		sendBuf_{std::move(other.sendBuf_)}
+		// recvBuf_{std::move(other.recvBuf_)}
 {}
 
 //move assignment - UPDATE
@@ -86,7 +86,7 @@ Client&	Client::operator=(Client&& other) noexcept {
 		modeReceived = std::exchange(other.modeReceived, false);
 		whois = std::exchange(other.modeReceived, false);
 		sendBuf_ = std::exchange(other.sendBuf_, "");
-		recvBuf_ = std::exchange(other.recvBuf_, "");
+		// recvBuf_ = std::exchange(other.recvBuf_, "");
 	}
 	return *this;
 }
@@ -94,6 +94,7 @@ Client&	Client::operator=(Client&& other) noexcept {
 // Client::Client(std::string nick, std::string user, int fd): fd(fd), nick(nick), user(user) {}
 
 bool	Client::bufForSending(const std::string& data) {
+std::cout << "- bufForSending -" << std::endl;
 	if (data.empty()){
 		return true;
 	}
