@@ -61,7 +61,7 @@ std::string getNickByFd(int fd) const;
 
 	void run(); // Start the server
 private:
-
+	void ft_send(int fd, const std::string& message);
 	void setupServer();                                     // Set up the server
 	void mainLoop();                                        // Main loop for handling connections
 	void acceptNewConnection();                             // Accept new connections

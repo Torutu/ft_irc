@@ -157,7 +157,6 @@ void Channel::broadcast(const std::string& message, const std::string& sender_ni
         auto it = clientsPtr_->find(cliFd);
         if (cliFd != except_fd && it != clientsPtr_->end())
         {
-            // send(*it, fullMessage.c_str(), fullMessage.length(), 0); // we only directly call send() in the handleClientWrite() when the socket is ready for POLLOUT
             try {
                 clientsPtr_->at(cliFd).bufForSending(fullMessage.c_str());
             } catch (std::exception& e) {

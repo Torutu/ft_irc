@@ -13,6 +13,14 @@ Server::~Server() {
 	// Cleanup resources if needed
 }
 
+void Server::ft_send(int fd, const std::string& message) {
+	try {
+		clients_.at(fd).bufForSending(message);
+	} catch (std::out_of_range& e) {
+		std::cerr << "clients_ map access at nonexisting key:" << fd << " - " << e.what() << std::endl;
+	}
+}
+
 void Server::sendWelcome(int fd) {
 	const std::string& nick = clients_[fd].getNick();
 	std::string welcome = 
@@ -20,7 +28,7 @@ void Server::sendWelcome(int fd) {
 		":localhost 002 " + nick + " :Your host is localhost\r\n" +
 		":localhost 003 " + nick + " :This server was created today\r\n" +
 		":localhost 004 " + nick + " :localhost 1.0\r\n";
-	send(fd, welcome.c_str(), welcome.size(), 0);
+	ft_send(fd, welcome.c_str());
 }
 
 void Server::checkRegistration(int fd) {
@@ -47,8 +55,7 @@ void Server::mainLoop() {
 	std::cout << "Entering main loop with " << pollFds_.size() << " file descriptors" << std::endl;
 	
 	while (true) {
-		
-		int ready = poll(&pollFds_[0], pollFds_.size(), -1);
+		int ready = poll(pollFds_.data(), pollFds_.size(), -1);
 		if (ready < 0) {
 			std::cerr << "poll() error: " << strerror(errno) << std::endl;
 			if (errno == EINTR) continue;
@@ -81,6 +88,7 @@ void Server::mainLoop() {
 		}
 	}
 }
+
 void Server::acceptNewConnection() {
 	Socket	clientSock;
 	while (serverFd_.accept(clientSock) == false) { //can be while(maxRetries_ private const) or similar
@@ -118,23 +126,16 @@ void Server::acceptNewConnection() {
 
 	// Initialize new client
 	clients_.emplace(clientSock.getFd(), Client(std::move(clientSock)));
-	if (clients_.find(clientSockFd) == clients_.end()) {
-		std::cout << "Key not found!" << std::endl;
-	} else {
-		clients_.at(clientSockFd).bufForSending("hellou");
-	}
+
 	// Send welcome message
 	std::string welcome = "Welcome to ft_irc!\nPlease register with NICK and USER\r\n";
-	if (send(clientSockFd, welcome.c_str(), welcome.size(), 0) < 0) {
-		std::cerr << "send() error: " << strerror(errno) << std::endl;
-	}
+	ft_send(clientSockFd, welcome.c_str());
 
-	
 	// Send initial MOTD (makes irssi happy)
 	std::string motd = 
 		":localhost 375 * :- Message of the Day -\r\n"
 		":localhost 376 * :Another day another slay\r\n";
-	send(clientSockFd, motd.c_str(), motd.size(), 0);
+	ft_send(clientSockFd, motd.c_str());
 }
 
 int Server::getClientFdByNick(const std::string& nick) const {
@@ -156,7 +157,7 @@ std::string Server::getNickByFd(int fd) const {
 
 //best performance is to implement switching of POLLOUT flag on and off in the pollfd struct when the relevant client's sendBuffer is empty
 void	Server::handleClientWrite(size_t index) {
-	int cliFd = 0;
+	int cliFd = -1;
 
 	try {
 		cliFd = pollFds_.at(index).fd;

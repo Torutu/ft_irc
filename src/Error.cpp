@@ -47,7 +47,3 @@ void Server::handleClientError(int errorCode, size_t index) {
     clients_.erase(fd);
 
 }
-
-void ft_send(int fd, const std::string& message) {
-    send(fd, message.c_str(), message.length(), 0);
-}
