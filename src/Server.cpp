@@ -32,9 +32,9 @@ void Server::sendWelcome(int fd) {
 }
 
 void Server::checkRegistration(int fd) {
-	Client& client = clients_[fd];
-	if (!client.getNick().empty() && !client.getUser().empty() && !client.isAuthenticated()) {
-		client.setAuthenticated();  // Assuming you want to set them as authenticated
+std::cout << "Hellou Registry.........." << std::endl;
+	if (!clients_[fd].getNick().empty() && !clients_[fd].getUser().empty() && !clients_[fd].isAuthenticated()) {
+		clients_[fd].setAuthenticated();  // Assuming you want to set them as authenticated
 		sendWelcome(fd);
 	}
 }
@@ -128,7 +128,7 @@ void Server::acceptNewConnection() {
 	clients_.emplace(clientSock.getFd(), Client(std::move(clientSock)));
 
 	// Send welcome message
-	std::string welcome = "Welcome to ft_irc!\nPlease register with NICK and USER\r\n";
+	std::string welcome = "Welcome to " + cnfg_.getServName() + "!\nPlease register with NICK and USER\r\n";
 	ft_send(clientSockFd, welcome.c_str());
 
 	// Send initial MOTD (makes irssi happy)
@@ -136,6 +136,7 @@ void Server::acceptNewConnection() {
 		":localhost 375 * :- Message of the Day -\r\n"
 		":localhost 376 * :Another day another slay\r\n";
 	ft_send(clientSockFd, motd.c_str());
+	checkRegistration(clientSockFd);
 }
 
 int Server::getClientFdByNick(const std::string& nick) const {

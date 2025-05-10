@@ -11,7 +11,7 @@ class Config {
 	int					port_;
 	std::string			portStr_;
 	std::string			password_;
-	const std::string	serverName_ = "WB_ircserv";
+	const std::string	serverName_ = "ft_irc, WB edition ®";
 	const unsigned short	minPassLen_ = 4;
 	const std::string	allowedPassChars_ = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_!?#";
 
