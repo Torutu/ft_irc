@@ -162,11 +162,11 @@ void	Server::handleClientWrite(size_t index) {
 	try {
 		cliFd = pollFds_.at(index).fd;
 	} catch(const std::out_of_range& e) {
-		std::cerr << "handleClientWrite() - to pollFd_[" << index << "] which is out of range!" << std::endl;
+		std::cerr << "handleClientWrite() - to pollFd_[index " << index << "] which is out of range!" << std::endl;
 		return;
 	}
 	if (cliFd < 0) {
-		std::cerr << "handleClientWrite() - to pollFd_[" << index << "] which has a negative FD! fd=" << cliFd << std::endl;
+		std::cerr << "handleClientWrite() - to pollFd_[index " << index << "] which has a negative FD! fd=" << cliFd << std::endl;
 		return;
 	}
 	if (clients_[cliFd].sendBuf_.empty()) {

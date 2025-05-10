@@ -1,17 +1,22 @@
 #include "../inc/irc.hpp"
 
 void Server::handleClientRead(size_t index) {
-	char buffer[1024];
-	ssize_t bytesRead = recv(pollFds_[index].fd, buffer, sizeof(buffer) - 1, 0);
+	char buffer[IRC_BUFFER_SIZE];
+
+	int fd = pollFds_.at(index).fd;
+	
+	ssize_t bytesRead = recv(fd, buffer, sizeof(buffer), 0);
 	if (bytesRead <= 0) {
 		handleClientError(bytesRead == 0 ? 0 : errno, index);
 		return;
 	}
-	
-	buffer[bytesRead] = '\0'; // Null-terminate
-	int fd = pollFds_[index].fd;
+	std::string&	input = clients_.at(fd).recvBuf_;//in case recv with a partial message, we stored it in recvBuf_ so we have to add the new msg to it
+	if (input.size() + bytesRead > IRC_BUFFER_SIZE) {
+		std::cerr << "recvBuff filling up! Data lost! Client fd:" << fd << "pollFd_[] index:" << index << std::endl;
+		return;
+	}
+	input.append(buffer, bytesRead);
 	// Split the input by \r\n and process each command
-	std::string input(buffer);
 	size_t pos = 0;
 	std::string line;
 	while ((pos = input.find("\r\n")) != std::string::npos) {
@@ -31,12 +36,12 @@ Client::Client()
 	passReceived{false},
 	modeReceived{false},
 	whois{false},
-	sendBuf_{}
+	sendBuf_{},
+	recvBuf_{}
 	// bytesRecvd_{0},
-	// recvBuf_{}
 {
 	sendBuf_.reserve(IRC_BUFFER_SIZE);
-	// recvBuf_.reserve(IRC_BUFFER_SIZE);
+	recvBuf_.reserve(IRC_BUFFER_SIZE);
 }
 
 Client::Client(Socket&& so)  // Parameterized constructor
@@ -49,12 +54,12 @@ Client::Client(Socket&& so)  // Parameterized constructor
 	passReceived{false},
 	modeReceived{false},
 	whois{false},
-	sendBuf_{}
+	sendBuf_{},
+	recvBuf_{}
 	// bytesRecvd_{0},
-	// recvBuf_{}
 {
 	sendBuf_.reserve(IRC_BUFFER_SIZE);
-	// recvBuf_.reserve(IRC_BUFFER_SIZE);
+	recvBuf_.reserve(IRC_BUFFER_SIZE);
 }
 
 //move constructor - UPDATE
@@ -69,8 +74,8 @@ Client::Client(Client&& other) noexcept
 		passReceived{std::exchange(other.passReceived, false)},
 		modeReceived{std::exchange(other.modeReceived, false)},
 		whois{std::exchange(other.modeReceived, false)},
-		sendBuf_{std::move(other.sendBuf_)}
-		// recvBuf_{std::move(other.recvBuf_)}
+		sendBuf_{std::move(other.sendBuf_)},
+		recvBuf_{std::move(other.recvBuf_)}
 {}
 
 //move assignment - UPDATE
@@ -86,7 +91,7 @@ Client&	Client::operator=(Client&& other) noexcept {
 		modeReceived = std::exchange(other.modeReceived, false);
 		whois = std::exchange(other.modeReceived, false);
 		sendBuf_ = std::exchange(other.sendBuf_, "");
-		// recvBuf_ = std::exchange(other.recvBuf_, "");
+		recvBuf_ = std::exchange(other.recvBuf_, "");
 	}
 	return *this;
 }

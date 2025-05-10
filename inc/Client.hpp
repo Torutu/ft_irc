@@ -7,7 +7,6 @@
 
 #define IRC_BUFFER_SIZE 4096
 
-//add send/recv with persisting buffers to client
 class Client {
 	private:
 		Socket	so_;
@@ -33,7 +32,7 @@ class Client {
         ~Client()								= default;
         
         std::string sendBuf_;//make private?
-        // std::string	recvBuf_;//make private?
+        std::string	recvBuf_;//make private?
 		std::string getNick() const;
 		std::string getUser() const;
 

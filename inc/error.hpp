@@ -2,7 +2,6 @@
 
 class Server; // forward declare
 
-void ft_send(int fd, const std::string& message);
 // Common error
 #define ERR_NOT_IN_CHANNEL(chan) (":localhost 442 " + chan + " :You're not on that channel\r\n")
 #define ERR_NO_SUCH_CHANNEL(chan) (":localhost 403 " + chan + " :No such channel\r\n")
