@@ -37,8 +37,6 @@ void Server::handleClientError(int errorCode, size_t index) {
 
     if (errorCode == 0) { // Client disconnected normally
         std::cout << "Client disconnected: " << clientIp << " (FD: " << fd << ")\n";
-    } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        return;
     } else { // Client error
         std::cerr << "Error with client " << clientIp 
                   << " (FD: " << fd << "): " << strerror(errno) << "\n";

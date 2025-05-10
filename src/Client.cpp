@@ -1,19 +1,21 @@
 #include "../inc/irc.hpp"
 
-void Server::handleClientRead(size_t index) {
+bool	Server::handleClientRead(size_t index) {
 	char buffer[IRC_BUFFER_SIZE];
 
 	int fd = pollFds_.at(index).fd;
 	
 	ssize_t bytesRead = recv(fd, buffer, sizeof(buffer), 0);
 	if (bytesRead <= 0) {
-		handleClientError(bytesRead == 0 ? 0 : errno, index);
-		return;
+		if (errno != EAGAIN && errno != EWOULDBLOCK) {
+			handleClientError(bytesRead == 0 ? 0 : errno, index);
+		}
+		return false;
 	}
 	std::string&	input = clients_.at(fd).recvBuf_;//in case recv with a partial message, we stored it in recvBuf_ so we have to add the new msg to it
 	if (input.size() + bytesRead > IRC_BUFFER_SIZE) {
 		std::cerr << "recvBuff filling up! Data lost! Client fd:" << fd << "pollFd_[] index:" << index << std::endl;
-		return;
+		return false;
 	}
 	input.append(buffer, bytesRead);
 	// Split the input by \r\n and process each command
@@ -24,6 +26,7 @@ void Server::handleClientRead(size_t index) {
 		processCommand(fd, line);
 		input.erase(0, pos + 2); // Move past \r\n
 	}
+	return true;
 }
 
 Client::Client()

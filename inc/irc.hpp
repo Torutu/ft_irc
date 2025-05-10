@@ -65,8 +65,8 @@ private:
 	void setupServer();                                     // Set up the server
 	void mainLoop();                                        // Main loop for handling connections
 	void acceptNewConnection();                             // Accept new connections
-	void handleClientRead(size_t index);
-	void	handleClientWrite(size_t index);
+	bool	handleClientRead(size_t index);
+	bool	handleClientWrite(size_t index);
 	void checkRegistration(int fd);                         // Check if client is registered
 	void sendWelcome(int fd);                               // Send welcome message to client
 	void handleClientError(int errorCode, size_t index);    // Handle client errors

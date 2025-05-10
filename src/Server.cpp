@@ -32,7 +32,6 @@ void Server::sendWelcome(int fd) {
 }
 
 void Server::checkRegistration(int fd) {
-std::cout << "Hellou Registry.........." << std::endl;
 	if (!clients_[fd].getNick().empty() && !clients_[fd].getUser().empty() && !clients_[fd].isAuthenticated()) {
 		clients_[fd].setAuthenticated();  // Assuming you want to set them as authenticated
 		sendWelcome(fd);
@@ -67,13 +66,15 @@ void Server::mainLoop() {
 		}
 		
 		// Check all file descriptors, not just server socket
-		for (unsigned long i = 0; i < pollFds_.size(); i++) {
+		//Fix iteration through this loop so when an FD is erased -
+		//e.g. during handleClientRead() - the loop indexes continue correctly, and try optimizing performance
+		for (unsigned long i = pollFds_.size(); i-- > 0;) {
 			if (pollFds_[i].revents & POLLIN) {
 				if (pollFds_.at(i).fd == serverFd_.getFd()) {
 					acceptNewConnection();
 				}
 				else {
-					handleClientRead(i);
+					if (!handleClientRead(i)) {continue;}
 				}
 			}
 			if (pollFds_[i].revents & POLLOUT) {
@@ -81,9 +82,9 @@ void Server::mainLoop() {
 			}
 			if (pollFds_[i].revents & (POLLERR | POLLHUP | POLLNVAL)) {
 				std::cerr << "Error condition on fd " << pollFds_.at(i).fd << std::endl;
-				// clients_.erase(pollFds_.at(i).fd); //do we erase the client in this case?
+				clients_.erase(pollFds_.at(i).fd); //do we erase the client in this case?
 				pollFds_.erase(pollFds_.begin() + i);
-				i--; // Adjust index after erase
+				// i--; // Adjust index after erase
 			}
 		}
 	}
@@ -157,21 +158,21 @@ std::string Server::getNickByFd(int fd) const {
 }
 
 //best performance is to implement switching of POLLOUT flag on and off in the pollfd struct when the relevant client's sendBuffer is empty
-void	Server::handleClientWrite(size_t index) {
+bool	Server::handleClientWrite(size_t index) {
 	int cliFd = -1;
 
 	try {
 		cliFd = pollFds_.at(index).fd;
 	} catch(const std::out_of_range& e) {
 		std::cerr << "handleClientWrite() - to pollFd_[index " << index << "] which is out of range!" << std::endl;
-		return;
+		return false;
 	}
 	if (cliFd < 0) {
 		std::cerr << "handleClientWrite() - to pollFd_[index " << index << "] which has a negative FD! fd=" << cliFd << std::endl;
-		return;
+		return false;
 	}
 	if (clients_[cliFd].sendBuf_.empty()) {
-		return;
+		return true;
 	}
 
 	ssize_t sent = send(cliFd, clients_[cliFd].sendBuf_.data(), clients_[cliFd].sendBuf_.size(), MSG_NOSIGNAL);
@@ -179,11 +180,14 @@ void	Server::handleClientWrite(size_t index) {
 		clients_[cliFd].sendBuf_.erase(0, sent);
 	} else if (sent == -1) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
-			return;
+			return true;
 		} else {
 			std::cerr << "handleClientWrite() - FD " << cliFd << " send() error: " << strerror(errno) << std::endl;
+			return false;
 		}
 	} else if (sent == 0) {
 		handleClientError(0, index);
+		return false;
 	}
+	return true;
 }
