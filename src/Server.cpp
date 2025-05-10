@@ -154,9 +154,20 @@ std::string Server::getNickByFd(int fd) const {
 	return ""; // Not found
 }
 
+//best performance is to implement switching of POLLOUT flag on and off in the pollfd struct when the relevant client's sendBuffer is empty
 void	Server::handleClientWrite(size_t index) {
-	int cliFd = pollFds_.at(index).fd;
+	int cliFd = 0;
 
+	try {
+		cliFd = pollFds_.at(index).fd;
+	} catch(const std::out_of_range& e) {
+		std::cerr << "handleClientWrite() - to pollFd_[" << index << "] which is out of range!" << std::endl;
+		return;
+	}
+	if (cliFd < 0) {
+		std::cerr << "handleClientWrite() - to pollFd_[" << index << "] which has a negative FD! fd=" << cliFd << std::endl;
+		return;
+	}
 	if (clients_[cliFd].sendBuf_.empty()) {
 		return;
 	}
@@ -168,7 +179,7 @@ void	Server::handleClientWrite(size_t index) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
 			return;
 		} else {
-			std::cerr << "FD " << cliFd << " send() error: " << strerror(errno) << std::endl;
+			std::cerr << "handleClientWrite() - FD " << cliFd << " send() error: " << strerror(errno) << std::endl;
 		}
 	} else if (sent == 0) {
 		handleClientError(0, index);

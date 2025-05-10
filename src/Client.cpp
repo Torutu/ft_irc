@@ -35,8 +35,8 @@ Client::Client()
 	// bytesRecvd_{0},
 	// recvBuf_{}
 {
-	sendBuf_.reserve(4096);
-	// recvBuf_.reserve(4096);
+	sendBuf_.reserve(IRC_BUFFER_SIZE);
+	// recvBuf_.reserve(IRC_BUFFER_SIZE);
 }
 
 Client::Client(Socket&& so)  // Parameterized constructor
@@ -53,8 +53,8 @@ Client::Client(Socket&& so)  // Parameterized constructor
 	// bytesRecvd_{0},
 	// recvBuf_{}
 {
-	sendBuf_.reserve(4096);
-	// recvBuf_.reserve(4096);
+	sendBuf_.reserve(IRC_BUFFER_SIZE);
+	// recvBuf_.reserve(IRC_BUFFER_SIZE);
 }
 
 //move constructor - UPDATE
@@ -94,7 +94,6 @@ Client&	Client::operator=(Client&& other) noexcept {
 // Client::Client(std::string nick, std::string user, int fd): fd(fd), nick(nick), user(user) {}
 
 bool	Client::bufForSending(const std::string& data) {
-std::cout << "- bufForSending -" << std::endl;
 	if (data.empty()){
 		return true;
 	}

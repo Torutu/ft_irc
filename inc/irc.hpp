@@ -41,6 +41,12 @@
 #include "Socket.hpp"
 #include "Config.hpp"
 
+
+#define REDIRC "\033[1;31m"
+#define YELLOWIRC "\033[33m"
+#define GREENIRC "\033[1;32m"
+#define RESETIRC "\033[0m"
+
 class Server {
 public:
 

@@ -40,7 +40,7 @@ void Server::cmdPrivMsg(int fd, const std::string& message) {
             return;
         }
 
-        channels_[target].broadcast(fd, fullMsg, clients_[fd].getNick(), fd);
+        channels_[target].broadcast(fullMsg, clients_[fd].getNick(), fd);
     } else {
         // It's a private message to a user
         int targetFd = getClientFdByNick(target);

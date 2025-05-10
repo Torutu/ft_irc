@@ -43,6 +43,6 @@ void Server::cmdTopic(int fd, const std::string& message) {
 
         ch.setTopic(topic);
         std::string broadcast = ":" + client.getNick() + " TOPIC " + channel + " :" + topic + "\r\n";
-        ch.broadcast(fd, broadcast, client.getNick(), fd);
+        ch.broadcast(broadcast, client.getNick(), fd);
     }
 }

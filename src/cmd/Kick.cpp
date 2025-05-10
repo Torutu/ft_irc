@@ -9,7 +9,7 @@ void Server::kickUser(int sender_fd, const std::string& channelName, const std::
 
     std::string message = ":" + clients_[sender_fd].getNick() + " KICK " + channelName + " " + targetNick + " :" + reason + "\r\n";
 
-    channel.broadcast(sender_fd, message, clients_[sender_fd].getNick());
+    channel.broadcast(message, clients_[sender_fd].getNick());
 
     // Remove user from channel
     channel.removeClient(target_fd);

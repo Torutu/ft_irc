@@ -8,21 +8,33 @@ Channel::Channel(const std::string &name, std::map<int, Client>* allClientsPtr)
 
 Channel::~Channel() {}
 
-Channel::Channel(const Channel &other)  
-{
-    *this = other;
-}
+Channel::Channel(const Channel &other)
+    : name(other.name),
+      topic(other.topic),
+      pwd(other.pwd),
+      invitedUsers(other.invitedUsers),
+      clients(other.clients),
+      operators(other.operators),
+      userLimit(other.userLimit),
+      inviteOnly(other.inviteOnly),
+      topicRestrictedToOperators(other.topicRestrictedToOperators),
+      clientsPtr_(other.clientsPtr_)
+{}
 
 Channel &Channel::operator=(const Channel &other)
 {
     if (this != &other)
     {
-        this->name = other.getName();
-        this->topic = other.getTopic();
-        this->pwd = other.getPwd();
-        this->userLimit = other.getUserLimit();
-        this->inviteOnly = other.getInviteOnly();
-        this->topicRestrictedToOperators = other.getTopicRestricted();
+        this->name = other.name;
+        this->topic = other.topic;
+        this->pwd = other.pwd;
+        this->invitedUsers = other.invitedUsers;
+        this->clients = other.clients;
+        this->operators = other.operators;
+        this->userLimit = other.userLimit;
+        this->inviteOnly = other.inviteOnly;
+        this->topicRestrictedToOperators = other.topicRestrictedToOperators;
+        this->clientsPtr_ = other.clientsPtr_;  // Copy the pointer as well!
     }
     return *this;
 }
@@ -132,36 +144,28 @@ void Channel::removeClient(int fd)
         this->clients.erase(it);
 }
 
-void Channel::broadcast(int sender_fd, const std::string& message, const std::string& sender_nick, int except_fd) // send to all clients except the sender
-{(void)except_fd;
-    std::cout << "broadcast" << std::endl;
-    (void) sender_fd; // Unused parameter, can be removed if not needed
+void Channel::broadcast(const std::string& message, const std::string& sender_nick, int except_fd) // send to all clients except the sender
+{
+    if (!clientsPtr_) {
+        return;
+    }
     std::string fullMessage = ":" + sender_nick + " PRIVMSG " + this->name + " :" + message + "\r\n";
-    // for (std::vector<int>::iterator it = this->clients.begin(); it != this->clients.end(); ++it) // IMHO we don't gain anything by using an iterator on an int vector
+    int cliFd = 0;
     for (unsigned long i = 0; i < clients.size(); i++)
     {
-        if (!clientsPtr_) std::cout << "null" << std::endl;
-        if (clientsPtr_) {  // Check for null
-            for (auto it = clientsPtr_->begin(); it != clientsPtr_->end(); ++it) {
-                std::cout << "Key: " << it->first << ", Value: " << it->second.getFd() << std::endl;
+        cliFd = clients.at(i);
+        auto it = clientsPtr_->find(cliFd);
+        if (cliFd != except_fd && it != clientsPtr_->end())
+        {
+            // send(*it, fullMessage.c_str(), fullMessage.length(), 0); // we only directly call send() in the handleClientWrite() when the socket is ready for POLLOUT
+            try {
+                clientsPtr_->at(cliFd).bufForSending(fullMessage.c_str());
+            } catch (std::exception& e) {
+                std::cerr << "channel broadcast - accessing Client map at key: " << i << " failed." << e.what() << std::endl;
             }
         }
-        // auto it = clientsPtr_->find(clients.at(i));
-        // std::cout << "auto it = clientsPtr_->find(clients.at(i));" << std::endl;
-        // if (clients.at(i) != except_fd)
-        // {
-        //     // send(*it, fullMessage.c_str(), fullMessage.length(), 0); // we only directly call send() in the handleClientWrite() when the socket is ready for POLLOUT 
-        //     try {
-        //         if (it != clientsPtr_->end()) {
-        //             std::cout << "auto it = clientsPtr_->find(clients.at(i));" << std::endl;
-        //             clientsPtr_->at(clients.at(i)).bufForSending(fullMessage.c_str());
-        //         }
-        //     } catch (std::exception& e) {
-        //         std::cerr << "channel broadcast - accessing Client map at key: " << i << " failed." << e.what() << std::endl;
-        //     }
-        //     std::cout << " end" << std::endl;
-        }
     }
+}
 
 
 bool Channel::isOperator(int fd) const {

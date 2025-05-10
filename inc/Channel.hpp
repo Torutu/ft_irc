@@ -54,5 +54,5 @@ class Channel
         void setTopic(const std::string& newTopic);
         void addClient(int fd); // Add a client to the channel
         void removeClient(int fd); // Remove a client from the channel
-        void broadcast(int sender_fd, const std::string& message, const std::string& sender_nick, int except_fd = -1); // Send a message to all clients in the channel except the sender
+        void broadcast(const std::string& message, const std::string& sender_nick, int except_fd = -1); // Send a message to all clients in the channel except the sender
 };
