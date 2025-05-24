@@ -5,6 +5,13 @@ using std::cerr;
 using std::endl;
 using std::string;
 
+
+// An abstract base for all event handlers:
+class EventHandler {
+public:
+	virtual void handleEvent(int fd) = 0;//read, accept, write
+};
+
 Server	*g_servPtr = nullptr;
 
 Server::Server(Config&& cfg) : cfg_{std::move(cfg)}, listenSo_{} {}
@@ -25,7 +32,7 @@ void Server::run() {
 					rmClient(pollFds_.back().fd);
 					state &= ~IRC_ACCEPTING;
 				}
-				std::cerr << "poll() returned -1 with errno: " << strerror(errno) << std::endl;
+				std::cerr << "poll() -1 with errno: " << strerror(errno) << "; clients_ count: " << clients_.size() << std::endl;
 				continue;
 			}
 			#ifdef IRC_DEBUG_PRINTS
