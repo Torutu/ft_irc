@@ -81,17 +81,43 @@ void	Socket::initListener(uint16_t port) {
 	isListening_ = true;
 }
 
+
+bool	Socket::setNonBlocking(int fd) {
+	int flags = 0;
+
+	while ((flags = fcntl(fd, F_GETFL, 0)) < 0) {
+		cerr << "fcntl() error: " << strerror(errno) << endl;
+		if (errno == EINTR) {
+			continue;
+		}
+		return false;
+	}
+	while (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+		cerr << "fcntl() error: " << strerror(errno) << endl;
+		if (errno == EINTR) {
+			continue;
+		}
+		return false;
+	}
+	return true;
+}
+
 bool	Socket::accept(Socket& toSocket) const {
 	if (!isListening_) {
-		throw std::logic_error("accept() can be called only on the listening socket");
+		return false;
 	}
 
 	sockaddr_in clientAddr{};
 	socklen_t addrLen = sizeof(clientAddr);
-	int clientFd = ::accept4(fd_, reinterpret_cast<sockaddr*>(&clientAddr), &addrLen, SOCK_NONBLOCK);
+	int clientFd = ::accept(fd_, reinterpret_cast<sockaddr*>(&clientAddr), &addrLen);
 	if (clientFd < 0) {
 		return false;
 	}
+
+	if (setNonBlocking(clientFd) == false) {
+		return false;
+	}
+
 	toSocket = Socket(clientFd, clientAddr);
 	return true;
 }
@@ -100,7 +126,7 @@ std::string	Socket::getIpStr() const {
 	char ipStr[INET_ADDRSTRLEN] = {};
 
 	if (inet_ntop(AF_INET, &addr_.sin_addr, ipStr, INET_ADDRSTRLEN) == nullptr) {
-		std::cerr << "inet_ntop error: " << strerror(errno) << std::endl;
+		cerr << "inet_ntop error: " << strerror(errno) << endl;
 	}
 	return ipStr;
 }

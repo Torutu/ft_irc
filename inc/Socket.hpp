@@ -36,6 +36,7 @@ public:
 
 	void	initListener(uint16_t port);
 	bool	accept(Socket& toSocket) const;
+	bool	setNonBlocking(int fd);
 
 	int			getFd() const noexcept {return fd_;}
 	sockaddr_in getAddr() const noexcept {return addr_;}

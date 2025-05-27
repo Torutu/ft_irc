@@ -6,15 +6,13 @@ using std::endl;
 using std::string;
 
 
-// An abstract base for all event handlers:
-class EventHandler {
-public:
-	virtual void handleEvent(int fd) = 0;//read, accept, write
-};
 
 Server	*g_servPtr = nullptr;
 
-Server::Server(Config&& cfg) : cfg_{std::move(cfg)}, listenSo_{} {}
+Server::Server(Config&& cfg) : cfg_{std::move(cfg)}, listenSo_{} {
+	listenSo_.initListener(cfg_.getPort());
+	pollFds_.push_back({listenSo_.getFd(), POLLIN, 0});
+}
 
 void Server::run() {
 	listenSo_.initListener(cfg_.getPort());
@@ -47,62 +45,55 @@ void Server::run() {
 	cout << "Server shutting down.." << endl;
 }
 
-/*
-	question the requirement of all 3 ifs not being in an if-else block
-	(bc when adding/removing a client during first if block, index and map needs updating)
-	not a huge deal, but ugly and cumbersome. 
-	Assumption is for 1st if being separate is that POLLIN and POLLERR/HUP/NVAL are NOT mutually exclusive, so we should still process input on error
-	-ToDo: timeout if no activity from client bc monopolyizing the resourses
-*/
-void Server::handleEvents() {
-	for (int i = pollFds_.size() - 1; i >= 0; --i) {
-		#ifdef IRC_POLL_PRINTS
-			std::cout << "POll-- i=" << i << " size of pollFds_=" << pollFds_.size() << std::endl;
-		#endif
-		pollfd&	pfd = pollFds_.at(i);
+// void Server::handleEvents() {
+// 	for (int i = pollFds_.size() - 1; i >= 0; --i) {
+// 		#ifdef IRC_POLL_PRINTS
+// 			std::cout << "POll-- i=" << i << " size of pollFds_=" << pollFds_.size() << std::endl;
+// 		#endif
+// 		pollfd&	pfd = pollFds_.at(i);
 
-		if (POLLIN & pfd.revents) {
-			#ifdef IRC_POLL_PRINTS
-				std::cout << "POLLIN--" << std::endl;
-			#endif
-			if (pfd.fd == listenSo_.getFd()) {
-				if (IRC_ACCEPTING & state) {
-					acceptNewConnection();
-				}
-				continue;
-			} else {
-				if (clients_.at(pfd.fd).receive() == false) {
-					rmClient(pfd.fd);
-					continue;
-				}
-				if (handleMsgs(pfd.fd) == false) {
-					rmClient(pfd.fd);
-					continue;
-				}
-			}
-		}
-		if ((POLLERR | POLLHUP | POLLNVAL) & pfd.revents) {
-			#ifdef IRC_POLL_PRINTS
-				std::cout << REDIRC << "POLL ERRS--" << RESETIRC << std::endl;
-			#endif
-			std::cerr << REDIRC << "POLLERR | POLLHUP | POLLNVAL" << RESETIRC << strerror(errno) << std::endl;
-			std::cerr << "revents error: " << pfd.revents << " on fd " << pfd.fd << std::endl;
-			if (POLLIN ^ pfd.revents) {//on error, POLLIN may still be up, so drain remaining data before removing client
-				rmClient(pfd.fd);
-			}
-			// rmClient(pfd.fd);
-		} else if (POLLOUT & pfd.revents) {
-			#ifdef IRC_POLL_PRINTS 
-				std::cout << "POLLOUT--" << std::endl;
-			#endif
-			if (clients_.at(pfd.fd).send() == false) {
-				rmClient(pfd.fd);
-			}
-		}
-	}
-}
+// 		if (POLLIN & pfd.revents) {
+// 			#ifdef IRC_POLL_PRINTS
+// 				std::cout << "POLLIN--" << std::endl;
+// 			#endif
+// 			if (pfd.fd == listenSo_.getFd()) {
+// 				if (IRC_ACCEPTING & state) {
+// 					acceptNewConnection();
+// 				}
+// 				continue;
+// 			} else {
+// 				if (clients_.at(pfd.fd).receive() == false) {
+// 					rmClient(pfd.fd);
+// 					continue;
+// 				}
+// 				if (handleMsgs(pfd.fd) == false) {
+// 					rmClient(pfd.fd);
+// 					continue;
+// 				}
+// 			}
+// 		}
+// 		if ((POLLERR | POLLHUP | POLLNVAL) & pfd.revents) {
+// 			#ifdef IRC_POLL_PRINTS
+// 				std::cout << REDIRC << "POLL ERRS--" << RESETIRC << std::endl;
+// 			#endif
+// 			std::cerr << REDIRC << "POLLERR | POLLHUP | POLLNVAL" << RESETIRC << strerror(errno) << std::endl;
+// 			std::cerr << "revents error: " << pfd.revents << " on fd " << pfd.fd << std::endl;
+// 			if (POLLIN ^ pfd.revents) {//on error, POLLIN may still be up, so drain remaining data before removing client
+// 				rmClient(pfd.fd);
+// 			}
+// 			// rmClient(pfd.fd);
+// 		} else if (POLLOUT & pfd.revents) {
+// 			#ifdef IRC_POLL_PRINTS 
+// 				std::cout << "POLLOUT--" << std::endl;
+// 			#endif
+// 			if (clients_.at(pfd.fd).send() == false) {
+// 				rmClient(pfd.fd);
+// 			}
+// 		}
+// 	}
+// }
 
-void Server::acceptNewConnection() {
+bool Server::receive() override {
 	Socket	clientSock;
 
 	if (listenSo_.accept(clientSock) == false) {
@@ -138,7 +129,7 @@ void Server::addClient(Socket& sock) {
 	try {
 		clients_.emplace(fd, Client(std::move(sock), &pollFds_.back()));
 	} catch (std::exception& e) {
-		std::cerr << "addClient to map (fd: " << fd << ") failed: " << e.what() << std::endl;
+		std::cerr << "addClient() fd: " << fd << " failed: " << e.what() << std::endl;
 		rmClient(fd);
 		return;
 	}

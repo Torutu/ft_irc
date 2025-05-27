@@ -1,5 +1,9 @@
 #pragma once
 
+
 class EventHandler {
-	virtual	void	handleEvent(int fd) = 0;
+public:
+	virtual	bool	send() = 0;
+	virtual	bool	receive() = 0;
+	// virtual	void	error(int fd) = 0;
 };

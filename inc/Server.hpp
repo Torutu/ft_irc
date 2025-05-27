@@ -40,6 +40,7 @@
 #include "Channel.hpp"
 #include "Socket.hpp"
 #include "Config.hpp"
+#include "EventHandler.hpp"
 
 //testing
 #include <chrono>
@@ -61,7 +62,7 @@ enum IRCState : char {
 
 // #define IRC_DEBUG_PRINTS
 // #define IRC_POLL_PRINTS
-class Server {
+class Server : public EventHandler {
 private:
 	Config	cfg_;
 	Socket	listenSo_;
@@ -70,10 +71,9 @@ private:
 	std::vector<struct pollfd>	pollFds_;
 	std::map<std::string, Channel>	channels_;
 	int defaultUserCount_ = 0;
-	
+
 	void	updatePollfds();
 	void	handleEvents();
-	void	acceptNewConnection();
 	void	addClient(Socket& sock);
 	void	rmClient(int rmFd);
 	bool	handleMsgs(int fromFd);
@@ -99,6 +99,8 @@ public:
 	~Server()	= default;
 	
 	void	run();
+	bool	receive() override;
+	bool	send() override { return false; }
 	void	gracefulShutdown();
 	int		getPort() const noexcept {return cfg_.getPort();}
 	int		getServerFd() const { return listenSo_.getFd(); }

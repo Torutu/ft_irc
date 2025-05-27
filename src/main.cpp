@@ -1,4 +1,5 @@
 #include "../inc/Server.hpp"
+#include "../inc/Reactor.hpp"
 
 namespace {
 
@@ -28,11 +29,12 @@ int main(int argc, char* argv[])
 	
 	try {
 		Config  config(argv[1], argv[2]);
+		Reactor	pollLoop;
 		Server	server(std::move(config));
-		
+		pollLoop.registerHandler(&server);
 		g_servPtr = &server;
 		
-		server.run();
+		pollLoop.run();
 		
 	} catch (const std::exception& e) {
 		std::cerr << "Exception caught in main: " << e.what() << std::endl;

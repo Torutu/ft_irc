@@ -4,13 +4,14 @@
 #include <string>
 #include <map>
 #include "Socket.hpp"
+#include "EventHandler.hpp"
 
 // #define IRC_CLI_PRINT
 
-#define IRC_BUFFER_SIZE 1
-#define IRC_MAX_BUF 256001
+#define IRC_BUFFER_SIZE 512
+#define IRC_MAX_BUF 256000
 
-class Client {
+class Client : public EventHandler {
 	private:
 		Socket		so_;
 		pollfd		*pfd_;
@@ -35,13 +36,13 @@ class Client {
 		Client(Client&& other) noexcept;				//Move constructor
 		Client&	operator=(Client&& other) noexcept; 	//Move assignment
 		~Client()								= default;
-		
+	
 		//I/O
-		bool	hasDataToSend() const { return !sendBuf_.empty();}
+		bool	send() override;
+		bool	receive() override;
 		void	toSend(const std::string& data);
-		bool	send();
-		bool	receive();
-
+		
+		bool	hasDataToSend() const { return !sendBuf_.empty();}
 		int		getFd() const	{ return this->so_.getFd(); }
 		std::string getIP() const {return so_.getIpStr();}
 		std::string	getMsgs();

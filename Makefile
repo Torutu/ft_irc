@@ -3,7 +3,7 @@ FSANITNAME    = $(NAME)Fsan
 VALGRNAME    = $(NAME)Val
 
 CXX            = c++
-FLAGS        = -std=c++17 -Wall -Wextra -Werror # -Wpedantic -Wshadow #-O3 #-DNDEBUG
+FLAGS        = -std=c++17 -Wall -Wextra -Werror -Wpedantic -Wshadow #-O3 #-DNDEBUG
 DEBUGFLAGS    = -g -O0 -fsanitize=address -fsanitize=undefined #-v
 VALGRFLAGS    = -g -O0
 RM            = rm -rf
